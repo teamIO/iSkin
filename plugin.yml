@@ -1,0 +1,5 @@
+name: iSkin
+main: me.thehutch.iskin.iSkin
+version: 3.0
+author: thehutch
+softdepends: Spout
