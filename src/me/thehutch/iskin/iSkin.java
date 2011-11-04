@@ -1,8 +1,8 @@
 package me.thehutch.iskin;
 
 import com.herocraftonline.dev.heroes.Heroes;
-import java.io.File;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -19,8 +19,8 @@ import org.getspout.spoutapi.player.SpoutPlayer;
 
 public class iSkin extends JavaPlugin {
 
-    FileConfiguration config;
-    File file = new File(this.getDataFolder() + File.separator + "config.yml");
+    protected Heroes heroes = null;
+    protected FileConfiguration config;
     
     @Override
     public void onDisable() {
@@ -37,60 +37,64 @@ public class iSkin extends JavaPlugin {
         System.out.println("[iSkin] has been enabled");
     }
     
-    public void setupConfig() {
-        
-        if (!file.exists()) {
-            try {
-                file.createNewFile();
-            } catch (Exception ex){
-                ex.printStackTrace();
-            }
-        }
+    private void setupConfig() {
 
         config = this.getConfig();
         config.options().header(" iSkin configuration file ");
-
         config.addDefault("Players.testplayer.url", "http://www.minecraft.net/skin/Notch.png");
         config.addDefault("Groups.testgroup.url", "http://www.minecraft.net/skin/Notch.png");
-        config.addDefault("Enable Heroes support", true);
         config.addDefault("Heroes.testclass.url", "http://www.minecraft.net/skin/Notch.png");
-
         config.options().copyDefaults(true);
         saveConfig();
     }
     
-    public void load() {
-        try {
-            this.config.load(this.getDataFolder() + File.separator + "config.yml");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-    }
-} 
     
-    
-    public Heroes heroes = null;
     public boolean setupHeroes() {
-        
         Plugin p = this.getServer().getPluginManager().getPlugin("Heroes");
-        
         if (p !=null) {
             heroes = (Heroes) p;
-            // if plugin "Heroes" does exist then Cast the heroes plugin over to heroes
+            // if plugin "Heroes" exists then Cast the heroes plugin over to heroes
         }
         return false;
     }
-    
     
     public Heroes getHeroes() {
         return heroes;
         //returns the heroes plugin
     }
     
+    public String getPlayerSkin(String p) {
+        return this.config.getString("Players." + p + ".url");
+    }
+    
+    public String getGroupSkin(String group) {
+        return this.config.getString("Groups." + group + ".url");
+    }
+    
+    public String getHeroesSkin(String hero) {
+        return this.config.getString("Heroes." + hero + ".url");
+    }
+    
+    public void checkForMultipleSkin() {
+        
+        ConfigurationSection section = this.config.getConfigurationSection("Players");
+        Set<String> groups = section.getKeys(false);
+        
+        if (groups == null || groups.size() < 1) {
+       
+        } 
+        else {
+            for (int x=0 ; x<groups.size() ; x++) {
+                
+            }
+        }
+    }
+    
     
     public String getPlayerSkin(Player p) {
         
         ConfigurationSection section = config.getConfigurationSection("Groups");
-        Set<String> groups = section.getKeys(false);
+        List<String> groups = (List<String>) section.getKeys(false);
         
         if (groups == null || groups.size() < 1) {
             return null;
@@ -127,24 +131,15 @@ public class iSkin extends JavaPlugin {
     
     public void updateHero(Player p) {
         
-        if (this.heroes == null) {
-            return;
-        }
-        
-        boolean cfg = config.getBoolean("Enabled Heroes support", true);
-        
-        if (cfg == false) {
-            return;
+        if (this.getHeroes() == null) {
         }
         else {
             
-            String classname = this.heroes.getHeroManager().getHero(p).getHeroClass().getName();
-            
-            String url = this.config.getString("Heroes." + classname + ".url", "http://www.minecraft.net/skin/" + p + "Notch.png");
-            SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)p, url);
+        boolean cfg = config.getBoolean("Enabled Heroes support", true);
+        String classname = this.getHeroes().getHeroManager().getHero(p).getHeroClass().getName();
+        String url = this.config.getString("Heroes." + classname + ".url");
+        SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)p, url);
         }
-        
-        
     }
     
     

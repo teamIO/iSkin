@@ -29,8 +29,8 @@ public class CmdExecutor implements CommandExecutor {
 		if ((args[0].equalsIgnoreCase("reload")) && (cs.hasPermission("iskin.reload") || cs.isOp())) {
 			
 				log.info("initiating plugin reload...");
-				plugin.config = plugin.getConfig();
-				plugin.load();
+                                plugin.saveConfig();
+                                plugin.reloadConfig();                                
 				plugin.updateSkin((SpoutPlayer) cs);
 				plugin.updateHero((SpoutPlayer) cs);
 				log.info("reload successful");
