@@ -29,10 +29,14 @@ public class CmdExecutor implements CommandExecutor {
 		if ((args[0].equalsIgnoreCase("reload")) && (cs.hasPermission("iskin.reload") || cs.isOp())) {
 			
 				log.info("initiating plugin reload...");
-                                plugin.saveConfig();
-                                plugin.reloadConfig();                                
-				plugin.updateSkin((SpoutPlayer) cs);
+                                Player[] player = plugin.getServer().getOnlinePlayers();
+                                for (Player p : player) {
+                                plugin.updatePlayerSkin(p.getName());
+                                }
+                                plugin.updateGroupSkin();
+				plugin.updateHeroSkin();
 				plugin.updateHero((SpoutPlayer) cs);
+                                plugin.reloadConfig();
 				log.info("reload successful");
 				cs.sendMessage(ChatColor.DARK_RED + "[" + ChatColor.GREEN+"iSkin"+ChatColor.DARK_RED+"] has been reloaded");
 
@@ -103,9 +107,7 @@ public class CmdExecutor implements CommandExecutor {
 
 		
 		plugin.config.set("Playerlist." + player.getName() + ".url", url);
-		plugin.saveConfig();
-		plugin.updateSkin((SpoutPlayer) cs);
-		plugin.updateHero((SpoutPlayer) cs);
+		plugin.updatePlayerSkin(cs.getName());
 		cs.sendMessage(ChatColor.GOLD + "Your skin has now changed!");
 			return true;
                 }
@@ -119,27 +121,30 @@ public class CmdExecutor implements CommandExecutor {
 		else if ((args[0].equalsIgnoreCase("setplayer") && (cs.hasPermission("iskin.setplayer") || cs.isOp()))) {
 			
 			if (args.length < 3 || args.length > 5) {
-								return false;
+                            return false;
 			}
-			Player player = (Player)cs;
-			String playerName = args[1];
-			String url = args[2];
-			
-			if(!url.contains("http://") && args.length == 4) {
-				if(args[2].equalsIgnoreCase("Minecraft")) 
-					url = "http://www.minecraft.net/skin/" + args[3] + ".png";
-				}
-			if (!url.endsWith(".png")) {
-				player.sendMessage(ChatColor.RED+"URL must end with .png");
-			return false;
-			}
+                        try {
+                            String playerName = args[1];
+                            String url = args[2];
 
-			plugin.config.set("Playerlist." + playerName + ".url", url);
-			plugin.saveConfig();
-			plugin.updateSkin((SpoutPlayer) cs);
-			plugin.updateHero((SpoutPlayer) cs);
-				cs.sendMessage(ChatColor.GOLD + playerName + " now has a new skin!");
-			return true;
+                            if(!url.contains("http://") && args.length == 4) {
+                                if(args[2].equalsIgnoreCase("Minecraft")) 
+                             	url = "http://www.minecraft.net/skin/" + args[3] + ".png";
+                                }
+
+                            if (!url.endsWith(".png")) {
+                                cs.sendMessage(ChatColor.RED + "URL must end with .png");
+                                return false;
+                            }
+
+                            plugin.config.set("Playerlist." + playerName + ".url", url);
+                            plugin.updatePlayerSkin(url);
+                            cs.sendMessage(ChatColor.GOLD + playerName + " now has a new skin!");
+                            return true;
+                         } catch (Exception ex) {
+                            cs.sendMessage(ChatColor.RED + "Invalid player!");
+                        }
+			
 		}
 
 
@@ -150,27 +155,23 @@ public class CmdExecutor implements CommandExecutor {
 			if (args.length < 3 || args.length > 5) {
 				return false;
 		}
+		String groupName = args[1];
+		String url = args[2];
 
-
-			Player player = (Player)cs;
-			String groupName = args[1];
-			String url = args[2];
-
-				if(!url.contains("http://") && args.length == 4) {
-					if(args[2].equalsIgnoreCase("Minecraft")) 
-						url = "http://www.minecraft.net/skin/" + args[3] + ".png";
-				}
+			if(!url.contains("http://") && args.length == 4) {
+			if(args[2].equalsIgnoreCase("Minecraft")) 
+			url = "http://www.minecraft.net/skin/" + args[3] + ".png";
+			}
 
 		if (!url.endsWith(".png")) {
-			player.sendMessage(ChatColor.RED+"URL must end with .png");
+			cs.sendMessage(ChatColor.RED+"URL must end with .png");
 				return false;
 		}
 
 			plugin.config.set("Grouplist."+ groupName + ".url", url);
 			plugin.saveConfig();
-			plugin.updateSkin((SpoutPlayer) cs);
-			plugin.updateHero((SpoutPlayer) cs);
-				cs.sendMessage(ChatColor.GOLD + groupName + " Group has been created");
+			plugin.updateGroupSkin();
+			cs.sendMessage(ChatColor.GOLD + groupName + " has had its skin changed!");
 			return true;
 		}
 	}
