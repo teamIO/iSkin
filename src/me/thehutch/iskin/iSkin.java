@@ -1,6 +1,7 @@
 package me.thehutch.iskin;
 
 import com.herocraftonline.dev.heroes.Heroes;
+import com.herocraftonline.dev.heroes.classes.HeroClass;
 import com.herocraftonline.dev.heroes.hero.Hero;
 import java.io.File;
 import java.util.Collection;
@@ -14,10 +15,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerListener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.getspout.spoutapi.SpoutManager;
-
 
 
 public class iSkin extends JavaPlugin {
@@ -34,16 +37,57 @@ public class iSkin extends JavaPlugin {
     @Override
     public void onEnable() {
         
-        try {
-            this.checkForMultipleSkins();
-        } catch(Exception ex) {
-            System.out.println(ex.getCause());
-            
-        }
         this.setupConfig();
         this.setupHeroes();
-        this.getServer().getPluginManager();
         this.getCommand("iskin").setExecutor(new CmdExecutor(this));
+        
+        this.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_JOIN, new PlayerListener () {
+            
+            @Override
+            public void onPlayerJoin(PlayerJoinEvent ev) {
+                String pl = ev.getPlayer().getName();
+ 
+                if (!config.contains("Players." + pl)) {
+                    config.set("Players." + pl + ".url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+                    System.out.println(pl + " has been added to the config");
+                    saveConfig();
+                }
+
+                // If priority == players then update the player on joining
+                if (config.getString("Priority").equals("players")) {
+                    updatePlayerSkin(ev.getPlayer().getName());
+                }
+                
+                
+                // If priority == groups then update that players skin with that of his groups
+                else if (config.getString("Priority").equals("groups")) {
+                    
+                    Set<String> groups = config.getConfigurationSection("Groups").getKeys(false);
+                    for (String g : groups) {
+                        if (ev.getPlayer().hasPermission("iskin.group." + g)) {
+                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), config.getString("Groups." + g + ".url"));
+                        }
+                    }
+                }
+                
+                
+                // If priority == heroes then update that players skin with that of his heroclass
+                else if (config.getString("Priority").equals("heroes")) {
+                    
+                    Set<String> heroClasses = config.getConfigurationSection("Heroes").getKeys(false);
+                    Hero h = heroes.getHeroManager().getHero(ev.getPlayer());
+                    for(String hc : heroClasses) {
+                        if (h.getHeroClass().getName().equals(hc)) {
+                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), config.getString("Heroes." + hc + ".url"));
+                        }
+                    }
+                }
+                else {
+                    config.set("Priority", "players");
+                    saveConfig();
+                }
+            }
+        }, Event.Priority.Normal, this);
         System.out.println("[iSkin] has been enabled");
     }
     
@@ -51,9 +95,11 @@ public class iSkin extends JavaPlugin {
 
         config = this.getConfig();
         config.options().header(" iSkin configuration file ");
-        config.addDefault("Players.testplayer.url", "http://www.minecraft.net/skin/Notch.png");
-        config.addDefault("Groups.testgroup.url", "http://www.minecraft.net/skin/Notch.png");
-        config.addDefault("Heroes.testclass.url", "http://www.minecraft.net/skin/Notch.png");
+        config.addDefault("Priority", "players");
+        config.addDefault("Groups override players", true);
+        config.addDefault("Players.testplayer.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+        config.addDefault("Groups.testgroup.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+        config.addDefault("Heroes.testclass.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
         config.options().copyDefaults(true);
         saveConfig();
     }
@@ -81,20 +127,21 @@ public class iSkin extends JavaPlugin {
         return this.config.getString("Groups." + group + ".url");
     }
     
-    public String getHeroesSkin(String hero) {
-        return this.config.getString("Heroes." + hero + ".url");
+    public String getHeroesSkin(String hc) {
+        return this.config.getString("Heroes." + hc + ".url");
     }
     
+    // Check for people with multiple skins
     public void checkForMultipleSkins() {
 
         Set<String> playerKey = this.config.getConfigurationSection("Players").getKeys(false);
         Set<String> groupKey = this.config.getConfigurationSection("Groups").getKeys(false);
         Set<String> heroKey = this.config.getConfigurationSection("Heroes").getKeys(false);
-        HashSet<OfflinePlayer> allPlayers = this.getAllExistingPlayers();
+        Player[] players = this.getServer().getOnlinePlayers();
 
-        for (OfflinePlayer Opl : allPlayers) {
+        for (Player Opl : players) {
         for (String gK : groupKey) {
-            if (Opl.getPlayer().hasPermission("iskin.group." + gK)) {
+            if ((Opl.getPlayer().hasPermission("iskin.group." + gK)) && (!Opl.isOp() && !Opl.hasPermission("*"))) {
                 for (String p : playerKey) {
                     if (p.contains(Opl.getName())) {
                         playerKey.remove(p);
@@ -102,26 +149,30 @@ public class iSkin extends JavaPlugin {
                         }
                     }
                 }
-                for (String hK : heroKey) {
-                for (String pK : playerKey) {
-                    if (hK.contains(pK)) {
-                        playerKey.remove(pK);
-                        this.saveConfig();
-                    } 
-                }
-            }   
+            }
         }
+        if (this.getHeroes() !=null) {
+            for (String hK : heroKey) {
+            for (String pK : playerKey) {
+                if (hK.contains(pK)) {
+                    playerKey.remove(pK);
+                    this.saveConfig();
+                    }
+                } 
+            }
+        }   
     }
-}
+
     
-    // Updates a okayers skin
+    // Updates a players skin
     public void updatePlayerSkin(String p) {
-        this.saveConfig();
         this.checkForMultipleSkins();
         String url = this.getPlayerSkin(p);
-        SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)getServer().getPlayer(p), url);
+        HumanEntity pl = this.getServer().getPlayer(p);
+        SpoutManager.getAppearanceManager().setGlobalSkin(pl, url);
     }
     
+    // Updates a groups skin
     public void updateGroupSkin() {
         
         Set<String> groups = this.config.getConfigurationSection("Groups").getKeys(false);
@@ -140,34 +191,23 @@ public class iSkin extends JavaPlugin {
         }
     }
     
+    // Updates a HeroClass skin
     public void updateHeroSkin() {
-        Collection<Hero> allHeroes = this.getHeroes().getHeroManager().getHeroes();
-        for (Hero hero : allHeroes) {
-            
-            this.saveConfig();
+        if (this.getHeroes() !=null) {
             this.checkForMultipleSkins();
-            String url = this.getHeroesSkin(hero.toString());
-            SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)hero, url);
+            Collection<Hero> allHeroes = this.getHeroes().getHeroManager().getHeroes();
+            Set<String> heroClasses = this.config.getConfigurationSection("Heroes").getKeys(false);
+            for (Hero hero : allHeroes) {
+            for (String hc : heroClasses) {
+                if (hero.getHeroClass().getName().equals(hc)) {
+                    String url = this.getHeroesSkin(hc);
+                    SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)hero.getPlayer(), url);
+                }
             }
         }
-    
-    
-
-    
-    public void updateHero(Player p) {
-        
-        if (this.getHeroes() == null) {
-        }
-        else {
-            
-        boolean cfg = config.getBoolean("Enabled Heroes support", true);
-        String classname = this.getHeroes().getHeroManager().getHero(p).getHeroClass().getName();
-        String url = this.config.getString("Heroes." + classname + ".url");
-        SpoutManager.getAppearanceManager().setGlobalSkin((HumanEntity)p, url);
-        }
     }
-    
-    
+}
+
     public HashSet<OfflinePlayer> getAllExistingPlayers() {
         
         List<World> worlds = this.getServer().getWorlds();
@@ -187,20 +227,23 @@ public class iSkin extends JavaPlugin {
     // Help messages
     public void helpMessage1(CommandSender cs) {
 	cs.sendMessage(ChatColor.GOLD+"-----------iSkin-----------");
-	cs.sendMessage(ChatColor.GREEN+"/iskin reload");
-	cs.sendMessage(ChatColor.GREEN+"/iskin help <page>");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setself <url>");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setself minecraft <playername>");
-	cs.sendMessage(ChatColor.GOLD+"<> = enter details here");
-	cs.sendMessage(ChatColor.GOLD+"Page 1 of 2");
+	cs.sendMessage(ChatColor.GREEN + "/iskin reload");
+	cs.sendMessage(ChatColor.GREEN + "/iskin help <page>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setself <url>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setself minecraft <playername>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setplayer <playername> <url>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setplayer <playername> minecraft <character>");
+	cs.sendMessage(ChatColor.GOLD + "<> = enter details here");
+	cs.sendMessage(ChatColor.GOLD + "Page 1 of 2");
     }
     
     public void helpMessage2(CommandSender cs) {
 	cs.sendMessage(ChatColor.GOLD+"-----------iSkin-----------");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setplayer <playername> <url>");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setplayer <playername> minecraft <character>");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setgroup <groupname> <url>");
-	cs.sendMessage(ChatColor.GREEN+"/iskin setgroup <groupname> minecraft <character>");
-	cs.sendMessage(ChatColor.GOLD+"Page 2 of 2");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setgroup <groupname> <url>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin setgroup <groupname> minecraft <character>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin sethero <HeroClass> <url>");
+	cs.sendMessage(ChatColor.GREEN + "/iskin sethero <HeroClass> minecraft <character>");
+	cs.sendMessage(ChatColor.GOLD + "<> = enter details here");
+	cs.sendMessage(ChatColor.GOLD + "Page 2 of 2");
     }
 }

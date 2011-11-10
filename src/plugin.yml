@@ -6,4 +6,31 @@ softdepends: [Spout, Heroes]
 commands:
   iskin:
     description: main iSkin command
-    usage: /<command>
+permissions:
+  iskin.*:
+    description: Allows usage of all commands
+    children:
+      iskin.reload: true
+      iskin.help: true
+      iskin.setself: true
+      iskin.setplayer: true
+      iskin.setgroup: true
+      iskin.sethero: true
+  iskin.reload:
+    description: Allows the usage of /iskin reload
+    default: op
+  iskin.help:
+    description: Allows the usage of /iskin help <page>
+    default: op
+  iskin.setself:
+    description: Allows the usage of /iskin setself
+    default: op
+  iskin.setplayer:
+    description: Allows the usage of /iskin setplayer
+    default: op
+  iskin.setgroup:
+    description: Allows the usage of /iskin setgroup
+    default: op
+  iskin.sethero:
+    description: Allows the usage of /iskin sethero
+    default: op
