@@ -1,7 +1,6 @@
 package me.thehutch.iskin;
 
 import com.herocraftonline.dev.heroes.Heroes;
-import com.herocraftonline.dev.heroes.classes.HeroClass;
 import com.herocraftonline.dev.heroes.hero.Hero;
 import java.io.File;
 import java.util.Collection;
@@ -12,7 +11,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -26,11 +24,9 @@ import org.getspout.spoutapi.SpoutManager;
 public class iSkin extends JavaPlugin {
 
     protected Heroes heroes = null;
-    protected FileConfiguration config;
     
     @Override
     public void onDisable() {
-        this.saveConfig();
         System.out.println("iSkin has been disabled");
     }
 
@@ -47,43 +43,43 @@ public class iSkin extends JavaPlugin {
             public void onPlayerJoin(PlayerJoinEvent ev) {
                 String pl = ev.getPlayer().getName();
  
-                if (!config.contains("Players." + pl)) {
-                    config.set("Players." + pl + ".url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+                if (!getConfig().contains("Players." + pl)) {
+                    getConfig().set("Players." + pl, "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
                     System.out.println(pl + " has been added to the config");
                     saveConfig();
                 }
 
                 // If priority == players then update the player on joining
-                if (config.getString("Priority").equals("players")) {
+                if (getConfig().getString("Priority").equals("players")) {
                     updatePlayerSkin(ev.getPlayer().getName());
                 }
                 
                 
                 // If priority == groups then update that players skin with that of his groups
-                else if (config.getString("Priority").equals("groups")) {
+                else if (getConfig().getString("Priority").equals("groups")) {
                     
-                    Set<String> groups = config.getConfigurationSection("Groups").getKeys(false);
+                    Set<String> groups = getConfig().getConfigurationSection("Groups").getKeys(false);
                     for (String g : groups) {
                         if (ev.getPlayer().hasPermission("iskin.group." + g)) {
-                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), config.getString("Groups." + g + ".url"));
+                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), getConfig().getString("Groups." + g));
                         }
                     }
                 }
                 
                 
                 // If priority == heroes then update that players skin with that of his heroclass
-                else if (config.getString("Priority").equals("heroes")) {
+                else if (getConfig().getString("Priority").equals("heroes")) {
                     
-                    Set<String> heroClasses = config.getConfigurationSection("Heroes").getKeys(false);
+                    Set<String> heroClasses = getConfig().getConfigurationSection("Heroes").getKeys(false);
                     Hero h = heroes.getHeroManager().getHero(ev.getPlayer());
                     for(String hc : heroClasses) {
                         if (h.getHeroClass().getName().equals(hc)) {
-                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), config.getString("Heroes." + hc + ".url"));
+                            SpoutManager.getAppearanceManager().setGlobalSkin(ev.getPlayer(), getConfig().getString("Heroes." + hc));
                         }
                     }
                 }
                 else {
-                    config.set("Priority", "players");
+                    getConfig().set("Priority", "players");
                     saveConfig();
                 }
             }
@@ -93,14 +89,12 @@ public class iSkin extends JavaPlugin {
     
     private void setupConfig() {
 
-        config = this.getConfig();
-        config.options().header(" iSkin configuration file ");
-        config.addDefault("Priority", "players");
-        config.addDefault("Groups override players", true);
-        config.addDefault("Players.testplayer.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
-        config.addDefault("Groups.testgroup.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
-        config.addDefault("Heroes.testclass.url", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
-        config.options().copyDefaults(true);
+        getConfig().options().header(" iSkin configuration file ");
+        getConfig().addDefault("Priority", "players");
+        getConfig().addDefault("Players.testplayer", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+        getConfig().addDefault("Groups.testgroup", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+        getConfig().addDefault("Heroes.testclass", "http://s3.amazonaws.com/MinecraftSkins/Notch.png");
+        getConfig().options().copyDefaults(true);
         saveConfig();
     }
     
@@ -109,6 +103,7 @@ public class iSkin extends JavaPlugin {
         Plugin p = this.getServer().getPluginManager().getPlugin("Heroes");
         if (p !=null) {
             heroes = (Heroes) p;
+            return true;
             // if plugin "Heroes" exists then Cast the heroes plugin over to heroes
         }
         return false;
@@ -120,23 +115,23 @@ public class iSkin extends JavaPlugin {
     }
     
     public String getPlayerSkin(String p) {
-        return this.config.getString("Players." + p + ".url");
+        return this.getConfig().getString("Players." + p);
     }
     
     public String getGroupSkin(String group) {
-        return this.config.getString("Groups." + group + ".url");
+        return this.getConfig().getString("Groups." + group);
     }
     
     public String getHeroesSkin(String hc) {
-        return this.config.getString("Heroes." + hc + ".url");
+        return this.getConfig().getString("Heroes." + hc);
     }
     
     // Check for people with multiple skins
     public void checkForMultipleSkins() {
 
-        Set<String> playerKey = this.config.getConfigurationSection("Players").getKeys(false);
-        Set<String> groupKey = this.config.getConfigurationSection("Groups").getKeys(false);
-        Set<String> heroKey = this.config.getConfigurationSection("Heroes").getKeys(false);
+        Set<String> playerKey = this.getConfig().getConfigurationSection("Players").getKeys(false);
+        Set<String> groupKey = this.getConfig().getConfigurationSection("Groups").getKeys(false);
+        Set<String> heroKey = this.getConfig().getConfigurationSection("Heroes").getKeys(false);
         Player[] players = this.getServer().getOnlinePlayers();
 
         for (Player Opl : players) {
@@ -162,7 +157,6 @@ public class iSkin extends JavaPlugin {
             }
         }   
     }
-
     
     // Updates a players skin
     public void updatePlayerSkin(String p) {
@@ -175,7 +169,7 @@ public class iSkin extends JavaPlugin {
     // Updates a groups skin
     public void updateGroupSkin() {
         
-        Set<String> groups = this.config.getConfigurationSection("Groups").getKeys(false);
+        Set<String> groups = this.getConfig().getConfigurationSection("Groups").getKeys(false);
         Player[] pl = this.getServer().getOnlinePlayers();
         
         
@@ -196,7 +190,7 @@ public class iSkin extends JavaPlugin {
         if (this.getHeroes() !=null) {
             this.checkForMultipleSkins();
             Collection<Hero> allHeroes = this.getHeroes().getHeroManager().getHeroes();
-            Set<String> heroClasses = this.config.getConfigurationSection("Heroes").getKeys(false);
+            Set<String> heroClasses = this.getConfig().getConfigurationSection("Heroes").getKeys(false);
             for (Hero hero : allHeroes) {
             for (String hc : heroClasses) {
                 if (hero.getHeroClass().getName().equals(hc)) {
