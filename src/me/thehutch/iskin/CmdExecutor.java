@@ -1,6 +1,5 @@
 package me.thehutch.iskin;
 
-import java.util.logging.Logger;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,32 +12,27 @@ public class CmdExecutor implements CommandExecutor {
 	public CmdExecutor(iSkin instance) {
             plugin = instance;
         }
-	private final Logger log = Logger.getLogger("Minecraft");
 	
     @Override
     public boolean onCommand(CommandSender cs, Command cmd, String aliases, String[] args) {
 		
 		if(cmd.getName().equalsIgnoreCase("iskin") && args.length !=0) {
 
-		if (args[0].equalsIgnoreCase("reload")) {
+		if (args[0].equalsIgnoreCase("reload") && args.length == 1) {
 			
                     if (!cs.hasPermission("iskin.reload")) {
                         cs.sendMessage(ChatColor.RED + "You do not have permission");
                         return false;
                     }
-                    if (args.length != 1) {
-                        plugin.helpMessage1(cs);
-                           return true;
-       		    }
-                    else {
                         plugin.reloadConfig();
-                        for(Player p : plugin.getServer().getOnlinePlayers())
+                        plugin.saveConfig();
+                        for(Player p : plugin.getServer().getOnlinePlayers()) {
                             plugin.updatePlayerSkin(p.getName());
+                        }
                         plugin.updateGroupSkin();
                         cs.sendMessage(ChatColor.GREEN + "Reload complete");
                         return true;
                     }
-                }
 
 		/*
 		 * help command
@@ -102,7 +96,7 @@ public class CmdExecutor implements CommandExecutor {
                                 return false;
                             }
                             else {
-                                plugin.config.set("Players." + cs.getName() + ".url", url);
+                                plugin.getConfig().set("Players." + cs.getName(), url);
                                 plugin.saveConfig();
                                 plugin.updatePlayerSkin(cs.getName());
                                 cs.sendMessage(ChatColor.GOLD + "Your skin has now changed!");
@@ -119,7 +113,7 @@ public class CmdExecutor implements CommandExecutor {
                                 return false; 
                             }
                             else {
-                                plugin.config.set("Players." + cs.getName() + ".url", url);
+                                plugin.getConfig().set("Players." + cs.getName(), url);
                                 plugin.saveConfig();
                                 plugin.updatePlayerSkin(cs.getName());
                                 cs.sendMessage(ChatColor.GOLD + "Your skin has now changed");
@@ -155,7 +149,7 @@ public class CmdExecutor implements CommandExecutor {
                                 cs.sendMessage(ChatColor.RED + "URL must end with .png");
                             }
                             
-                            plugin.config.set("Players." + p.getName() + ".url", url);
+                            plugin.getConfig().set("Players." + p.getName(), url);
                             plugin.saveConfig();
                             plugin.updatePlayerSkin(p.getName());
                             cs.sendMessage(ChatColor.GOLD + p.getName() + "'s name has now changed");
@@ -178,7 +172,7 @@ public class CmdExecutor implements CommandExecutor {
                                 return false;
                             }
                             
-                            plugin.config.set("Players." + p + ".url", url);
+                            plugin.getConfig().set("Players." + p, url);
                             plugin.saveConfig();
                             plugin.updatePlayerSkin(p.getName());
                             cs.sendMessage(ChatColor.GOLD + p.getName() + " now has a new skin!");
@@ -222,7 +216,7 @@ public class CmdExecutor implements CommandExecutor {
                                 return false;
                             }
                             
-                            plugin.config.set("Groups." + group + ".url", url);
+                            plugin.getConfig().set("Groups." + group, url);
                             plugin.saveConfig();
                             plugin.updateGroupSkin();
                             cs.sendMessage(ChatColor.GOLD + group + " has had its skin changed!");
@@ -241,7 +235,7 @@ public class CmdExecutor implements CommandExecutor {
                             return false;
                         }
 
-                        plugin.config.set("Groups." + group + ".url", url);
+                        plugin.getConfig().set("Groups." + group, url);
                         plugin.saveConfig();
                         plugin.updateGroupSkin();
                         cs.sendMessage(ChatColor.GOLD + group + " has had its skin changed!");
@@ -278,7 +272,7 @@ public class CmdExecutor implements CommandExecutor {
                         return false;
                     }
                     
-                    plugin.config.set("Heroes." + heroClass + ".url", url);
+                    plugin.getConfig().set("Heroes." + heroClass, url);
                     plugin.saveConfig();
                     plugin.updateHeroSkin();
                     cs.sendMessage(ChatColor.GOLD + "The " + heroClass + "'s class now has a new skin");
@@ -297,7 +291,7 @@ public class CmdExecutor implements CommandExecutor {
                         return false;
                     }
                     
-                    plugin.config.set("Heroes." + heroClass + ".url", url);
+                    plugin.getConfig().set("Heroes." + heroClass, url);
                     plugin.saveConfig();
                     plugin.updateHeroSkin();
                     cs.sendMessage(ChatColor.GOLD + "The " + heroClass + "'s class now has a new skin");
