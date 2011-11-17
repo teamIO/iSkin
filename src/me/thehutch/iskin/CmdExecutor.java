@@ -165,21 +165,22 @@ public class CmdExecutor implements CommandExecutor {
                     else if (args.length == 3) {
                         try {
                             Player p = plugin.getServer().getPlayer(args[1]);
-                            String url = args[3]; 
+                            String url = args[2]; 
                             
                             if (!url.endsWith(".png")) {
                                 cs.sendMessage(ChatColor.RED + "URL must end with .png");
                                 return false;
                             }
                             
-                            plugin.getConfig().set("Players." + p, url);
+                            plugin.getConfig().set("Players." + p.getName(), url);
                             plugin.saveConfig();
                             plugin.updatePlayerSkin(p.getName());
                             cs.sendMessage(ChatColor.GOLD + p.getName() + " now has a new skin!");
                             return true;
                             
                         } catch (Exception ex) {
-                            cs.sendMessage("Invalid Player!");
+                            ex.printStackTrace();
+                            //cs.sendMessage("Invalid Player!");
                             return false;
                         }
                     }
